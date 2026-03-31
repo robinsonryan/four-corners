@@ -1,0 +1,14 @@
+name: four-corners
+type: php
+docroot: ""
+php_version: "8.5"
+webserver_type: nginx-fpm
+database:
+  type: postgres
+  version: "18"
+nodejs_version: "22"
+
+hooks:
+  post-start:
+    - exec: composer install
+    - exec: npm install
