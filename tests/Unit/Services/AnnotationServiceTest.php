@@ -40,9 +40,7 @@ it('starts a new annotation and dispatches event', function (): void {
         ->and($annotation->status)->toBe(AnnotationStatus::Pending)
         ->and($annotation->original_image_path)->toBe('s3://bucket/images/test.jpg');
 
-    Event::assertDispatched(AnnotationStarted::class, function ($event) use ($annotation): bool {
-        return $event->annotation->id === $annotation->id;
-    });
+    Event::assertDispatched(AnnotationStarted::class, fn ($event): bool => $event->annotation->id === $annotation->id);
 });
 
 it('starts annotation with auto-detection data', function (): void {

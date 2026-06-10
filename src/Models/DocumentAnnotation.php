@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Override;
 use RobinsonRyan\FourCorners\Concerns\ConfiguresIdentifiers;
 use RobinsonRyan\FourCorners\Enums\AnnotationStatus;
 use RobinsonRyan\FourCorners\Support\TablePrefixer;
@@ -43,6 +44,7 @@ final class DocumentAnnotation extends Model
 
     protected $guarded = [];
 
+    #[Override]
     protected function casts(): array
     {
         return [
@@ -61,6 +63,7 @@ final class DocumentAnnotation extends Model
         ];
     }
 
+    #[Override]
     public function getTable(): string
     {
         return TablePrefixer::prefix('document_annotations');

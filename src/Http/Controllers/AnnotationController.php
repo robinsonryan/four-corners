@@ -21,7 +21,7 @@ use RobinsonRyan\FourCorners\Services\AnnotationService;
 final class AnnotationController extends Controller
 {
     public function __construct(
-        private AnnotationService $annotationService,
+        private readonly AnnotationService $annotationService,
     ) {}
 
     /**
@@ -122,7 +122,7 @@ final class AnnotationController extends Controller
     {
         $annotation = $this->annotationService->find($id);
 
-        if ($annotation === null) {
+        if (! $annotation instanceof \RobinsonRyan\FourCorners\Models\DocumentAnnotation) {
             return response()->json([
                 'message' => 'Annotation not found',
             ], 404);

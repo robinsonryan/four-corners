@@ -16,7 +16,7 @@ use RobinsonRyan\FourCorners\Events\CornersAdjusted;
 use RobinsonRyan\FourCorners\Jobs\ProcessAnnotationJob;
 use RobinsonRyan\FourCorners\Models\DocumentAnnotation;
 
-final class AnnotationService
+final readonly class AnnotationService
 {
     public function __construct(
         private AnnotationRepositoryInterface $repository,
@@ -69,7 +69,7 @@ final class AnnotationService
         if ($annotation->auto_detection !== null) {
             $autoDetection = AutoDetectionData::from($annotation->auto_detection);
 
-            if ($autoDetection->corners !== null) {
+            if ($autoDetection->corners instanceof CornersData) {
                 $metrics = $this->metricsCalculator->calculateAdjustments(
                     $autoDetection->corners,
                     $finalCorners,

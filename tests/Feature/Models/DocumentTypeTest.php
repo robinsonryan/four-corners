@@ -34,7 +34,7 @@ it('uses uuid7 for primary key when configured', function (): void {
     ]);
 
     expect($documentType->id)->toBeString()
-        ->and(strlen($documentType->id))->toBe(36);
+        ->and(strlen((string) $documentType->id))->toBe(36);
 });
 
 it('scopes to active document types', function (): void {

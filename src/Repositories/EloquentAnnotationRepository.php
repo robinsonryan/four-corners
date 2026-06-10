@@ -28,7 +28,7 @@ final class EloquentAnnotationRepository implements AnnotationRepositoryInterfac
     {
         $annotation = $this->find($id);
 
-        if ($annotation === null) {
+        if (! $annotation instanceof DocumentAnnotation) {
             throw AnnotationNotFoundException::withId($id);
         }
 
@@ -62,11 +62,11 @@ final class EloquentAnnotationRepository implements AnnotationRepositoryInterfac
         $query = DocumentAnnotation::query()
             ->where('status', AnnotationStatus::Processed);
 
-        if ($from !== null) {
+        if ($from instanceof Carbon) {
             $query->where('annotated_at', '>=', $from);
         }
 
-        if ($to !== null) {
+        if ($to instanceof Carbon) {
             $query->where('annotated_at', '<=', $to);
         }
 

@@ -34,11 +34,11 @@ final class TrainingDataExporter
         }
 
         // Filter by date range
-        if ($from !== null) {
+        if ($from instanceof Carbon) {
             $query->where('annotated_at', '>=', $from);
         }
 
-        if ($to !== null) {
+        if ($to instanceof Carbon) {
             $query->where('annotated_at', '<=', $to);
         }
 

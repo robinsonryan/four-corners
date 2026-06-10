@@ -6,6 +6,7 @@ namespace RobinsonRyan\FourCorners\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Override;
 use RobinsonRyan\FourCorners\Models\DocumentAnnotation;
 
 /**
@@ -16,6 +17,7 @@ final class AnnotationResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
+    #[Override]
     public function toArray(Request $request): array
     {
         return [
@@ -40,8 +42,8 @@ final class AnnotationResource extends JsonResource
             'time_spent_seconds' => $this->time_spent_seconds,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
-            'document_type' => $this->whenLoaded('documentType', fn () => new DocumentTypeResource($this->documentType)),
-            'rejection_reason' => $this->whenLoaded('rejectionReason', fn () => new RejectionReasonResource($this->rejectionReason)),
+            'document_type' => $this->whenLoaded('documentType', fn (): DocumentTypeResource => new DocumentTypeResource($this->documentType)),
+            'rejection_reason' => $this->whenLoaded('rejectionReason', fn (): RejectionReasonResource => new RejectionReasonResource($this->rejectionReason)),
         ];
     }
 }
