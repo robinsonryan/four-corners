@@ -85,7 +85,7 @@ export interface Annotation {
   archiveImagePath: string | null;
   rejectionReasonId: number | string | null;
   rejectionNotes: string | null;
-  annotatedBy: number | null;
+  annotatedBy: number | string | null;
   annotatedAt: string | null;
   timeSpentSeconds: number | null;
 }

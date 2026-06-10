@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use RobinsonRyan\FourCorners\Data\AutoDetectionData;
 use RobinsonRyan\FourCorners\Data\CornersData;
 use RobinsonRyan\FourCorners\Data\PointData;
@@ -86,18 +87,20 @@ it('rejects an annotation and dispatches event', function (): void {
         documentTypeId: $this->documentType->id,
     );
 
+    $rejectedBy = Str::uuid7()->toString();
+
     $rejected = $this->service->reject(
         annotationId: $annotation->id,
         rejectionReasonId: $reason->id,
         notes: 'Image is very blurry',
-        rejectedBy: 1,
+        rejectedBy: $rejectedBy,
         timeSpentSeconds: 5.5,
     );
 
     expect($rejected->status)->toBe(AnnotationStatus::Rejected)
         ->and($rejected->rejection_reason_id)->toBe($reason->id)
         ->and($rejected->rejection_notes)->toBe('Image is very blurry')
-        ->and($rejected->annotated_by)->toBe(1)
+        ->and($rejected->annotated_by)->toBe($rejectedBy)
         ->and($rejected->time_spent_seconds)->toBe(5.5);
 
     Event::assertDispatched(AnnotationRejected::class);

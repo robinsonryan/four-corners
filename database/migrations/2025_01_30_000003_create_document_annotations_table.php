@@ -70,14 +70,22 @@ return new class extends Migration
             }
             $table->text('rejection_notes')->nullable();
 
-            // Audit fields
-            $table->unsignedBigInteger('annotated_by')->nullable();
+            // Audit fields (no foreign key — the consuming app owns the users table)
+            if (config('four_corners.id_type') === 'uuid7') {
+                $table->uuid('annotated_by')->nullable();
+            } else {
+                $table->unsignedBigInteger('annotated_by')->nullable();
+            }
             $table->timestamp('annotated_at')->nullable();
             $table->decimal('time_spent_seconds', 8, 2)->nullable();
 
-            // Tenant support
+            // Tenant support (no foreign key — the consuming app owns the tenant table)
             if (config('four_corners.tenant.enabled')) {
-                $table->unsignedBigInteger(config('four_corners.tenant.column', 'tenant_id'))->nullable();
+                if (config('four_corners.id_type') === 'uuid7') {
+                    $table->uuid(config('four_corners.tenant.column', 'tenant_id'))->nullable();
+                } else {
+                    $table->unsignedBigInteger(config('four_corners.tenant.column', 'tenant_id'))->nullable();
+                }
                 $table->index(config('four_corners.tenant.column', 'tenant_id'));
             }
 

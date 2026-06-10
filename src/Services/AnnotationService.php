@@ -54,7 +54,7 @@ final readonly class AnnotationService
         string $annotationId,
         CornersData $finalCorners,
         int $finalRotation,
-        int $annotatedBy,
+        int|string $annotatedBy,
         float $timeSpentSeconds,
         string $displayImageBase64,
         string $archiveImageBase64,
@@ -107,7 +107,7 @@ final readonly class AnnotationService
         string $annotationId,
         string|int $rejectionReasonId,
         ?string $notes,
-        int $rejectedBy,
+        int|string $rejectedBy,
         float $timeSpentSeconds,
     ): DocumentAnnotation {
         $annotation = $this->repository->update($annotationId, [

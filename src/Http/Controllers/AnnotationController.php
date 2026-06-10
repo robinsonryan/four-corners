@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RobinsonRyan\FourCorners\Http\Controllers;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use RobinsonRyan\FourCorners\Data\AutoDetectionData;
@@ -78,7 +79,7 @@ final class AnnotationController extends Controller
             annotationId: $id,
             finalCorners: CornersData::from($request->input('final_corners')),
             finalRotation: (int) $request->input('final_rotation'),
-            annotatedBy: (int) $user->id,
+            annotatedBy: $this->resolveUserId($user),
             timeSpentSeconds: (float) $request->input('time_spent_seconds'),
             displayImageBase64: $request->input('display_image'),
             archiveImageBase64: $request->input('archive_image'),
@@ -105,7 +106,7 @@ final class AnnotationController extends Controller
             annotationId: $id,
             rejectionReasonId: $request->input('rejection_reason_id'),
             notes: $request->input('notes'),
-            rejectedBy: (int) $user->id,
+            rejectedBy: $this->resolveUserId($user),
             timeSpentSeconds: (float) $request->input('time_spent_seconds'),
         );
 
@@ -113,6 +114,18 @@ final class AnnotationController extends Controller
             'annotation' => new AnnotationResource($annotation),
             'message' => 'Annotation rejected',
         ]);
+    }
+
+    /**
+     * Resolve the authenticated user's id in the configured id mode.
+     */
+    private function resolveUserId(Authenticatable $user): int|string
+    {
+        $id = $user->getAuthIdentifier();
+
+        return config('four_corners.id_type') === 'uuid7'
+            ? (string) $id
+            : (int) $id;
     }
 
     /**

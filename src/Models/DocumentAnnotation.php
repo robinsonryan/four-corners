@@ -30,7 +30,7 @@ use RobinsonRyan\FourCorners\Support\TablePrefixer;
  * @property string|null $archive_image_path
  * @property string|int|null $rejection_reason_id
  * @property string|null $rejection_notes
- * @property int|null $annotated_by
+ * @property int|string|null $annotated_by
  * @property Carbon|null $annotated_at
  * @property float|null $time_spent_seconds
  * @property Carbon|null $created_at
@@ -57,7 +57,7 @@ final class DocumentAnnotation extends Model
             'accepted_without_changes' => 'boolean',
             'corner_adjustments' => 'array',
             'rotation_was_correct' => 'boolean',
-            'annotated_by' => 'integer',
+            'annotated_by' => config('four_corners.id_type') === 'uuid7' ? 'string' : 'integer',
             'annotated_at' => 'datetime',
             'time_spent_seconds' => 'float',
         ];

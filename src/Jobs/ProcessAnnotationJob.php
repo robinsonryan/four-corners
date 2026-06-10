@@ -26,7 +26,7 @@ final class ProcessAnnotationJob implements ShouldQueue
         public string $annotationId,
         public CornersData $finalCorners,
         public int $finalRotation,
-        public int $annotatedBy,
+        public int|string $annotatedBy,
         public float $timeSpentSeconds,
         public string $displayImageBase64,
         public string $archiveImageBase64,
