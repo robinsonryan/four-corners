@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RobinsonRyan\FourCorners;
 
 use Illuminate\Support\ServiceProvider;
-use Override;
 use RobinsonRyan\FourCorners\Contracts\AnnotationRepositoryInterface;
 use RobinsonRyan\FourCorners\Repositories\EloquentAnnotationRepository;
 use RobinsonRyan\FourCorners\Services\AnnotationService;
@@ -13,7 +12,6 @@ use RobinsonRyan\FourCorners\Services\MetricsCalculator;
 
 final class FourCornersServiceProvider extends ServiceProvider
 {
-    #[Override]
     public function register(): void
     {
         $this->mergeConfigFrom(

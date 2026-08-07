@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **PHP floor lowered to `^8.2`** (was `^8.3`). A library's floor is a compatibility promise to consumers, not a statement about the machine it is developed on. This widens the supported range; no consumer on 8.3+ is affected
+- Removed the PHP 8.3-only `#[\Override]` attribute from `src/` (10 usages across 7 classes). It is inert on PHP 8.2, so it silently stopped enforcing anything under the new floor while implying it still did
+
+### Added
+- `quality` now gates Rector (`@refactor:check`), which had been defined but never composed into the gate since the package was created
+- PHPStan pins `phpVersion: 80200` so the declared floor is checked mechanically rather than aspirationally, plus `tmpDir: .phpstan.cache`
+
 ## [1.1.0] - 2026-06-10
 
 ### Fixed

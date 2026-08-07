@@ -7,7 +7,6 @@ namespace RobinsonRyan\FourCorners\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Override;
 use RobinsonRyan\FourCorners\Concerns\ConfiguresIdentifiers;
 use RobinsonRyan\FourCorners\Support\TablePrefixer;
 
@@ -27,7 +26,6 @@ final class RejectionReason extends Model
 
     protected $guarded = [];
 
-    #[Override]
     protected function casts(): array
     {
         return [
@@ -36,7 +34,6 @@ final class RejectionReason extends Model
         ];
     }
 
-    #[Override]
     public function getTable(): string
     {
         return TablePrefixer::prefix('rejection_reasons');

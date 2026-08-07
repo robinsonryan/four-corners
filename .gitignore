@@ -2,6 +2,8 @@
 /node_modules/
 /build/
 /.phpunit.cache/
+/.phpstan.cache/
+/.pint.cache
 .DS_Store
 *.swp
 .workspace
