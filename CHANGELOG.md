@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-08
+
 ### Changed
 - **BREAKING for anyone pinned to Laravel 11: `^11.0` dropped from every `illuminate/*` constraint** (now `^12.0|^13.0`), and `orchestra/testbench` narrowed to `^10.0|^11.0` (Testbench 9 *is* Laravel 11). The support was advertised but structurally untestable: this package requires `pestphp/pest ^4.0`, Pest 4 requires PHPUnit 12, and Testbench 9 caps at PHPUnit 11 — so a Laravel 11 test harness could never resolve here, and no consumer on Laravel 11 was ever verified. Advertising a range wider than the one we can run is a promise nobody was keeping
 - **PHP floor lowered to `^8.2`** (was `^8.3`). A library's floor is a compatibility promise to consumers, not a statement about the machine it is developed on. This widens the supported range; no consumer on 8.3+ is affected
