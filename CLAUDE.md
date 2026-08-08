@@ -1,312 +1,213 @@
-# CLAUDE.md
+# FourCorners
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Document annotation for Laravel: a person drags four corner handles onto a photographed
+document, and the package records the corner positions, the perspective-corrected output,
+and the delta between the machine's guess and the human's answer. That delta is the point —
+it exports as ML training data for a future auto-detection model.
 
-## Project Overview
+Composer name: `robinsonryan/four-corners` — a **library**, not an application.
 
-Four Corners is a Laravel package for document annotation with bounding box selection, perspective transformation, and ML training data collection. It provides client-side image processing using OpenCV.js and Vue 3 components for the annotation interface.
+## Conventions
 
-**Namespace:** `RobinsonRyan\FourCorners`
-**PHP:** 8.3+
-**Laravel:** 11.x, 12.x
-**Node:** 18+
-**Vue:** 3.5+
+@import ./constitution.md
+@import ./imports/package-conventions.md
+@import ./imports/package-quality-gate.md
+@import ./imports/testing-conventions.md
+@import ./imports/php-conventions.md
+@import ./imports/git-conventions.md
+@import ./imports/frontend-conventions.md
 
-## Development Commands
+> `frontend-conventions.md` is imported because this package **has a frontend half**
+> (Vue 3 components + Vitest). The other inherited app conventions in `.claude/imports/`
+> — `authorization-conventions.md`, `pwa-conventions.md`, `ddev-worktrees.md` — are
+> deliberately **not** imported: they describe Inertia `can` maps, app-shaped Vite wiring,
+> and nested app worktrees, none of which exist in a package. Read them if a question
+> genuinely calls for one; do not load them by default.
 
-### PHP Commands
+> `.claude/` is a set of **harness symlinks** and is gitignored — a fresh clone has
+> none of them and the `@import`s above resolve to nothing. If a convention file is
+> missing, restore the link rather than guessing:
+> `~/workspace/harness/link.sh project laravel-package $(pwd)`
 
-```bash
-# Install dependencies
-composer install
+## The gate
 
-# Run tests
-composer test
+`ddev composer quality` — `lint:check` → `analyze` → `refactor:check` → `test`.
+Verify-only: it never rewrites files. Fix with `ddev composer lint` /
+`ddev composer refactor` and re-stage.
 
-# Run single test
-./vendor/bin/pest --filter="test name"
+`.githooks/pre-commit` runs **the whole gate, tests included** — packages are
+small enough (13–21 s measured) that the apps' exclude-the-tests compromise does
+not apply. It is path-aware, so a docs-only commit skips it. Never bypass with
+`--no-verify`; `PACKAGE_SKIP_GATE=1` is a human emergency valve and **agents must
+never set it**.
 
-# Run tests with coverage
-composer test:coverage
+That hook file is a **copy** of the harness's canonical one. Do not edit it here
+— edit `$CLAUDE_HARNESS_DIR/core/stacks/laravel-package/hooks/pre-commit` and
+re-run that directory's `install.sh`.
 
-# Static analysis (PHPStan level 8)
-composer analyze
+`harness package-check` sweeps every first-party package: the gate, a
+`--prefer-lowest` run proving the declared version floor really resolves,
+outdated and vulnerability scans, and in-constraint updates behind a re-run of
+the gate. It never tags a release. Run it before any app re-resolves its
+packages.
 
-# Code formatting (Laravel Pint)
-composer lint
+Full definition: `imports/package-quality-gate.md`. Skill: `/package-quality`.
 
-# Full quality check (lint, analyze, test)
-composer quality
-```
+### The frontend gate
 
-### Frontend Commands
+`ddev exec npm run quality` — `lint:check` (ESLint, `--max-warnings=0`) →
+`typecheck` (`vue-tsc --noEmit`) → `test` (Vitest). The pre-commit hook runs it on any
+commit that stages `.ts` / `.vue` / `.js` / `.css` or a frontend config.
 
-```bash
-# Install dependencies
-npm install
+**There is deliberately no `build` step, and there is no `vite.config.ts`.** Do not add
+one "to complete the set." The old `build` script ran `vite build` with no Vite config at
+all and had never once succeeded — it always died on "Could not resolve entry module
+index.html". This package ships **source**: `package.json` `main` points at
+`resources/js/index.ts` and `types` at raw `.ts`, and the consuming app compiles those in
+its own build. There is no artifact to produce. If that ever changes, it needs a real Vite
+lib-mode config first, and only then does `build` go back into `quality`.
 
-# Run tests
-npm test
+ESLint ignores `resources/js/vendor/**` (the vendored OpenCV blob) and `docs/**` (the
+README example imports through a host-app alias that cannot resolve here). Two rules that
+catch people out, both from tseslint's strict preset: no non-null assertion `!`, and
+`readonly T[]` rather than `ReadonlyArray<T>`.
 
-# Run tests in watch mode
-npm run test:watch
+## Lock files are tracked
 
-# TypeScript type checking
-npm run typecheck
-```
+Unlike most sibling packages, this repo commits **both `composer.lock` and
+`package-lock.json`**. A dependency refresh therefore produces a real, committable diff —
+stage it with the `composer.json` / `package.json` change that caused it.
 
-### DDEV Commands
+## The two halves and where they meet
 
-```bash
-ddev start           # Start environment
-ddev test            # Run PHP tests
-ddev quality         # Full PHP quality checks
-```
+**All image processing happens in the browser.** PHP never touches pixels. The Vue side
+runs OpenCV.js, produces two base64 JPEGs (a display-size one and an archive-size one),
+and posts them; the PHP side records metadata and hands the images straight to the
+consuming app through an event. The package stores no files.
 
-## Architecture
+### PHP surface
 
-### Directory Structure
+| Entry point | What it is |
+|---|---|
+| `Facades\FourCorners` → `Services\AnnotationService` | `start`, `complete`, `reject`, `find`, `getPending`, `getMetricsSummary`. The whole public API |
+| `Events\*` | The integration seam. `AnnotationCompleted` carries `$annotation` plus **both base64 images** — the consuming app subscribes and decides where they land. Also `AnnotationStarted`, `AnnotationRejected`, `CornersAdjusted`, `TrainingDataExported` |
+| `routes/four-corners.php` | Group under `four_corners.routes.prefix` (default `admin/annotations`, middleware `['web','auth']`, name prefix `four-corners.`): `config`, `start`, `show`, `complete`, `reject`, plus `demo`/`test` pages. Handled by `Http\Controllers\AnnotationController` |
+| `Models\DocumentAnnotation`, `DocumentType`, `RejectionReason` | `DocumentType` carries aspect ratio + display/archive output sizes; `RejectionReason` is the categorized why-this-image-is-unusable list |
+| `Services\MetricsCalculator` | Per-corner pixel distance between the auto-detected guess and the human's final corners — the signal the whole package exists to collect |
+| `Services\TrainingDataExporter` + `ExportTrainingDataCommand` | JSONL export for model training |
+| `Contracts\AnnotationRepositoryInterface` | Bound to `Repositories\EloquentAnnotationRepository` in the service provider. Swap it to change persistence |
 
-```
-src/
-├── Concerns/                    # Traits
-│   └── ConfiguresIdentifiers.php   # UUID7/incrementing ID support
-├── Console/Commands/            # Artisan commands
-│   └── ExportTrainingDataCommand.php
-├── Contracts/                   # Interfaces
-│   ├── AnnotationRepositoryInterface.php
-│   └── ImageProcessorInterface.php
-├── Data/                        # Spatie Laravel Data DTOs
-│   ├── AdjustmentMetricsData.php
-│   ├── AutoDetectionData.php
-│   ├── CornersData.php
-│   ├── PointData.php
-│   └── RejectionData.php
-├── Enums/                       # PHP enums
-│   ├── AnnotationStatus.php     # pending, processing, processed, rejected
-│   ├── DetectionMethod.php      # opencv_js_contour_v1, ml_model_v1, manual
-│   └── Rotation.php             # 0, 90, 180, 270
-├── Events/                      # Laravel events
-│   ├── AnnotationCompleted.php
-│   ├── AnnotationRejected.php
-│   ├── AnnotationStarted.php
-│   ├── CornersAdjusted.php
-│   └── TrainingDataExported.php
-├── Exceptions/                  # Custom exceptions
-│   ├── AnnotationNotFoundException.php
-│   ├── InvalidCornersException.php
-│   └── ProcessingFailedException.php
-├── Http/
-│   ├── Controllers/
-│   │   ├── AnnotationController.php
-│   │   └── DemoController.php
-│   ├── Requests/
-│   │   ├── CompleteAnnotationRequest.php
-│   │   ├── RejectAnnotationRequest.php
-│   │   └── StartAnnotationRequest.php
-│   └── Resources/
-│       └── AnnotationResource.php
-├── Jobs/
-│   └── ProcessAnnotationJob.php
-├── Models/
-│   ├── DocumentAnnotation.php   # Main annotation model
-│   ├── DocumentType.php         # Document type definitions
-│   └── RejectionReason.php      # Rejection categories
-├── Repositories/
-│   └── EloquentAnnotationRepository.php
-├── Services/
-│   ├── AnnotationService.php    # Main service facade
-│   ├── MetricsCalculator.php    # Corner adjustment metrics
-│   └── TrainingDataExporter.php # JSONL export
-└── FourCornersServiceProvider.php
+Identifiers and tables are configurable, and both are load-bearing:
+`Concerns\ConfiguresIdentifiers` reads `four_corners.id_type` (`incrementing` or `uuid7`;
+**config default is `uuid7`**) and drives `getIncrementing()`, `getKeyType()`, and a
+`creating` hook that stamps `Str::uuid7()`. `Support\TablePrefixer` applies
+`four_corners.table_prefix` to every table name. The migrations branch on `id_type` for
+the *user-id* columns too (`annotated_by`, the tenant column) — they become `uuid` columns
+in uuid7 mode. Anything touching those columns must stay `int|string`, never `int`.
 
-resources/js/
-├── Components/
-│   ├── DocumentAnnotator.vue    # Main annotation interface
-│   ├── CornerHandle.vue         # Draggable corner points
-│   ├── QuadrilateralOverlay.vue # Selection polygon
-│   ├── RotationControls.vue     # Rotation buttons
-│   ├── ZoomControls.vue         # Zoom interface
-│   ├── ActionButtons.vue        # Accept/Reject/Preview
-│   ├── RejectModal.vue          # Rejection dialog
-│   └── PreviewModal.vue         # Transform preview
-├── Composables/
-│   ├── useAnnotationState.ts    # State management
-│   ├── useCornerDetection.ts    # OpenCV.js contour detection
-│   ├── useOpenCV.ts             # OpenCV.js loader
-│   └── usePerspectiveTransform.ts # Perspective warp
-├── Types/
-│   └── index.ts                 # TypeScript interfaces
-└── index.ts                     # Package exports
-```
+### Vue surface
 
-### Key Components
+`resources/js/index.ts` is the package's JS entry and exports exactly:
 
-| Component | Purpose |
-|-----------|---------|
-| `AnnotationService` | Main service for annotation lifecycle (start, complete, reject) |
-| `MetricsCalculator` | Calculate pixel distance between suggested and final corners |
-| `TrainingDataExporter` | Export JSONL format for ML training |
-| `DocumentAnnotation` | Main model storing annotation state and metadata |
-| `DocumentType` | Document type definitions (aspect ratio, output sizes) |
-| `RejectionReason` | Categorized rejection reasons for unusable images |
+- **Components** — `DocumentAnnotator` (the one consumers actually mount), plus its parts:
+  `CornerHandle`, `QuadrilateralOverlay`, `RotationControls`, `ZoomControls`,
+  `ActionButtons`, `RejectModal`, `PreviewModal`.
+- **Composables** — `useOpenCV`, `useCornerDetection`, `usePerspectiveTransform`,
+  `useAnnotationState`, `useExifOrientation`.
+- **Types** — everything in `Types/index.ts`.
 
-### Data Flow
+Canvas rendering is Konva (`konva` + `vue-konva`): a `v-stage` / `v-layer` holding the
+image, the quadrilateral overlay, and four draggable corner handles.
 
-1. **Start**: Create annotation with image path and dimensions
-2. **Auto-detect**: Client-side OpenCV.js detects document corners
-3. **Annotate**: User drags corner handles to adjust positions
-4. **Preview**: Client generates perspective-corrected preview
-5. **Complete**: Client sends base64 images, backend dispatches event
-6. **Store**: Consuming app handles image storage via `AnnotationCompleted` event
+`DocumentAnnotator` emits `complete` (a `CompletePayload`: annotation id, final corners,
+final rotation, seconds spent, both base64 images, and the original auto-detection so the
+delta can be computed) and `reject`. Those payloads are what the `complete` / `reject`
+routes consume — that is the entire seam between the halves.
 
-### Events
+## OpenCV interop
 
-| Event | When Fired | Payload |
-|-------|------------|---------|
-| `AnnotationStarted` | New annotation created | `$annotation` |
-| `AnnotationCompleted` | Annotation processed | `$annotation`, `$displayImageBase64`, `$archiveImageBase64` |
-| `AnnotationRejected` | Image rejected | `$annotation` |
-| `CornersAdjusted` | User modified corners | `$annotation`, `$adjustments` |
-| `TrainingDataExported` | Batch export completed | `$count`, `$path` |
+OpenCV.js is a ~9.8 MB emscripten build vendored at `resources/js/vendor/opencv.js`. It
+ships **no types**, so the interop is declared by hand in `resources/js/Types/opencv.ts` —
+deliberately only the ~30 members this package actually calls (`Mat`, `MatVector`, `Size`,
+the constants, `imread`/`imshow`, the Canny/contour chain, `getPerspectiveTransform`,
+`warpPerspective`, `rotate`). It is not an attempt to describe OpenCV. **If you call a new
+`cv.*` member, add it to that file rather than reaching for `any`** — the file exists
+precisely because the composables used to be a wall of `any`.
 
-### Configuration Pattern
+Two consequences to hold onto:
 
-Uses `ConfiguresIdentifiers` trait for flexible primary keys:
-- `id_type`: `'incrementing'` or `'uuid7'`
-- `table_prefix`: Optional prefix for all tables
-- `tenant.enabled`: Multi-tenant scoping support
+- `CvMat` and `CvMatVector` expose `delete()`. That is emscripten heap memory, not
+  garbage-collected. Every matrix you allocate must be deleted or the tab leaks.
+- `cv` is a **global**, not an import. `useOpenCV.ts` declares it via `declare global`, and
+  `eslint.config.js` lists `cv: "readonly"` so lint agrees. `useOpenCV(url)` injects the
+  script tag, waits for `onRuntimeInitialized`, caches the instance, and times out at 30 s.
+
+Where the script comes from is configurable and has **two sources that can disagree**:
+`config/four-corners.php` `opencv_url` defaults to the public CDN
+(`https://docs.opencv.org/4.9.0/opencv.js`), while the package also serves its own vendored
+copy from the unauthenticated route `four-corners/opencv.js`. Point
+`FOUR_CORNERS_OPENCV_URL` at that route to run offline or to pin the exact build.
 
 ## Testing
 
-### PHP Tests
+Pest + Orchestra Testbench. **This package is the exception to the stack's real-Postgres
+rule** — `tests/TestCase.php` configures SQLite `:memory:` and works fine, because nothing
+here depends on database-side `uuidv7()` defaults (ids are stamped in PHP by
+`ConfiguresIdentifiers`). Don't "fix" it toward Postgres without a reason.
 
-Uses Pest with Orchestra Testbench. Tests run against SQLite in-memory.
+`TestCase` also forces `id_type` to `uuid7` and strips `auth` from the route middleware, so
+HTTP tests hit the controllers directly. Spatie Laravel Data's full config is inlined there
+because Testbench does not load the package's own config.
 
-```
-tests/
-├── Feature/
-│   ├── Http/                 # Controller tests
-│   └── Models/               # Model integration tests
-├── Unit/
-│   ├── Data/                 # DTO tests
-│   └── Services/             # Service unit tests
-└── TestCase.php              # Base test case with config
-```
-
-Key test patterns:
-- Models use `RefreshDatabase` trait
-- DTOs are tested for validation and transformation
-- Services are tested with mocked repositories
-- HTTP tests use `actingAs()` for auth
-
-### Frontend Tests
-
-Uses Vitest with Vue Test Utils and happy-dom.
-
-```
-resources/js/__tests__/
-├── useAnnotationState.spec.ts
-├── Types.spec.ts
-├── RotationControls.spec.ts
-├── ZoomControls.spec.ts
-├── ActionButtons.spec.ts
-└── RejectModal.spec.ts
+```bash
+ddev composer test
+ddev exec vendor/bin/pest --filter=SomeTest
+ddev exec npm run test          # Vitest, resources/js/**/*.spec.ts
 ```
 
-## Frontend Architecture
+There is no `ddev artisan` and no `ddev pest` here — those are app commands.
 
-### Vue Components
+## Gotchas
 
-Components use Konva.js (via vue-konva) for canvas rendering:
+- **Static analysis covers `src` only.** PHPStan is `paths: [src]`, level 8, pinned to
+  `phpVersion: 80200` so the declared PHP floor is checked mechanically. Rector covers
+  `src` + `tests`. Nothing analyses `database/`, `routes/` or `config/` — and the seeders
+  and migrations carry the real id-type branching. Widening it is a harness-wide decision,
+  not a four-corners one (see `QUEUE.md`).
+- **`DocumentAnnotator` declares a `cancel` event that can never fire.** `defineEmits` has
+  `cancel: []` and `handleCancel()` exists, but no control in the template invokes it.
+  Deleting the handler alone would leave a declared public event with no emitter — it needs
+  a UI decision. Tracked in `QUEUE.md`; the handler carries an `eslint-disable` pointing
+  there.
+- **`Contracts\ImageProcessorInterface` is declared and never implemented or bound.** It is
+  a placeholder for server-side ML detection. Don't assume something fulfils it.
+- **Supported Laravel is `^12.0|^13.0`.** `^11.0` was dropped 2026-08-08: Pest 4 needs
+  PHPUnit 12, Testbench 9 (which *is* Laravel 11) caps at PHPUnit 11, so a Laravel 11
+  harness could never resolve here and that support was never once verified. Do not widen
+  it back without a harness that can actually run it.
 
-```vue
-<v-stage :config="stageConfig">
-  <v-layer>
-    <v-image :config="imageConfig" />
-    <QuadrilateralOverlay :corners="scaledCorners" />
-    <CornerHandle
-      v-for="key in cornerKeys"
-      :corner-key="key"
-      :position="scaledCorners[key]"
-      @drag-move="handleCornerDrag"
-    />
-  </v-layer>
-</v-stage>
-```
+## Releases
 
-### Composables
+**Never tag.** Automation may update, gate, commit and push a branch, then report
+"ready to tag" with a suggested version. Ryan cuts every tag. A version number is
+a claim about behavior that a green gate cannot substantiate.
 
-- `useOpenCV(url)` - Loads OpenCV.js from CDN, caches instance
-- `useCornerDetection()` - Canny edge detection + contour finding
-- `usePerspectiveTransform()` - 4-point perspective warp
-- `useAnnotationState(corners?, rotation?)` - Reactive state with change tracking
+This package is on `0.x` on purpose — `^0.4.0` resolves to `>=0.4.0 <0.5.0`, so every
+minor may break, which is the honest signal while the API settles. Behavior changes land in
+`CHANGELOG.md` in the commit that makes them.
 
-### TypeScript Types
+## Reference package
 
-```typescript
-interface Corners {
-  topLeft: Point;
-  topRight: Point;
-  bottomRight: Point;
-  bottomLeft: Point;
-}
+`~/dev/php/packages/robinsonryan/hey-you/` is the reference implementation —
+service provider shape, Testbench setup, tool configs, table prefixing. Read it
+before inventing a variant.
 
-interface CompletePayload {
-  annotationId: string | null;
-  finalCorners: Corners;
-  finalRotation: Rotation;
-  timeSpentSeconds: number;
-  displayImageBase64: string;
-  archiveImageBase64: string;
-  autoDetection: AutoDetection | null;
-}
-```
+## Quick reference
 
-## Common Tasks
-
-### Adding a New Document Type
-
-1. Create migration or seed:
-```php
-DocumentType::create([
-    'code' => 'new_document',
-    'name' => 'New Document',
-    'aspect_ratio_width' => 800,
-    'aspect_ratio_height' => 600,
-    'display_width' => 400,
-    'display_height' => 300,
-    'archive_width' => 800,
-    'archive_height' => 600,
-]);
-```
-
-### Adding a New Rejection Reason
-
-```php
-RejectionReason::create([
-    'code' => 'new_reason',
-    'label' => 'New Reason',
-    'description' => 'Description shown to user',
-    'sort_order' => 10,
-]);
-```
-
-### Customizing Corner Detection
-
-Override the detection algorithm in a custom composable:
-```typescript
-// resources/js/Composables/useCustomDetection.ts
-export function useCustomDetection() {
-  const detect = async (image, cv) => {
-    // Custom OpenCV.js detection logic
-  };
-  return { detect };
-}
-```
-
-## Documentation
-
-- [Installation](docs/installation.md) - Setup and requirements
-- [Configuration](docs/configuration.md) - All configuration options
-- [Usage](docs/usage.md) - Backend and frontend usage examples
+- **DDEV**: `ddev start`, `ddev ssh`
+- **Gate**: `ddev composer quality` · **Frontend gate**: `ddev exec npm run quality`
+- **Tests**: `ddev composer test` · **JS tests**: `ddev exec npm run test`
+- **Style fix**: `ddev composer lint` · **JS style fix**: `ddev exec npm run lint`
+- **Rector fix**: `ddev composer refactor`
+- **Docs**: `docs/installation.md`, `docs/configuration.md`, `docs/usage.md`,
+  `docs/examples/AnnotatePage.vue`
