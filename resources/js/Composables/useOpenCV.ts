@@ -1,10 +1,11 @@
 import { ref, type Ref } from 'vue';
+import type { OpenCV } from "../Types/opencv";
 
 declare global {
   interface Window {
     cv: typeof cv;
   }
-  const cv: any;
+  const cv: OpenCV;
 }
 
 interface UseOpenCVReturn {

@@ -1,4 +1,4 @@
-import type { ExifOrientation, ExifOrientationResult, Rotation } from '../Types';
+import type { ExifOrientation, ExifOrientationResult } from '../Types';
 
 /**
  * EXIF Orientation mapping:
@@ -61,7 +61,7 @@ export function useExifOrientation(): UseExifOrientationReturn {
       // APP1 marker (EXIF)
       if (marker === 0xFFE1) {
         if (offset + 2 > length) break;
-        const exifLength = view.getUint16(offset);
+        // Skip the APP1 segment length field; only the offset advance matters.
         offset += 2;
 
         // Check for "Exif\0\0" header

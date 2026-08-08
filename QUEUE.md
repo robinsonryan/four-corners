@@ -4,6 +4,16 @@
 > convention: `$CLAUDE_HARNESS_DIR/notes/implementation-queue.md`. Hand-editing is fine.
 
 ## Queued
+### `DocumentAnnotator` declares a `cancel` event that can never fire
+- **Added**: 2026-08-08 · Track P frontend gating
+- **Tier**: SOLO (needs a UI decision first)
+- **Context**: `defineEmits` declares `cancel: []` and `handleCancel()` exists, but no control in the template invokes it. Consumers can listen for `@cancel` and will never receive it. Either wire a cancel control or drop the event — deleting the handler alone would leave a declared public event with no emitter. The handler carries an `eslint-disable` pointing here.
+
+### `npm run build` removed — this package ships source, not a bundle
+- **Added**: 2026-08-08 · Track P frontend gating
+- **Tier**: none (recorded, not deferred work)
+- **Context**: the `build` script ran `vite build` with **no `vite.config.ts` in the package**, so it always failed with "Could not resolve entry module index.html". It had never worked. `main` points at `resources/js/index.ts` and `types` at raw `.ts`, and consumers compile the source in their own build, so there is no artifact to produce. The script was removed rather than repaired. If this package ever needs to ship a bundle, add a Vite lib-mode config and put `build` back in `quality`.
+
 
 ### Support Pest 5 / PHPUnit 13 / PHP 8.4+ in the constraint matrix
 - **Added**: 2026-08-07 · harness health & efficiency session — apps are queued to upgrade to Pest 5 for Tia; consuming apps can't move until this package allows it

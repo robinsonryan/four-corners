@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ZoomControls from '../Components/ZoomControls.vue';
+import { emittedEvents } from "./helpers";
 
 describe('ZoomControls', () => {
-  const defaultProps = {
-    zoom: 1,
-    minZoom: 0.25,
-    maxZoom: 4,
-    disabled: false,
-  };
 
   it('displays zoom percentage', () => {
     const wrapper = mount(ZoomControls, {
@@ -44,7 +39,7 @@ describe('ZoomControls', () => {
     await zoomInButton.trigger('click');
 
     expect(wrapper.emitted('update:zoom')).toBeTruthy();
-    expect(wrapper.emitted('update:zoom')![0][0]).toBeGreaterThan(1);
+    expect(emittedEvents(wrapper, 'update:zoom')[0][0]).toBeGreaterThan(1);
   });
 
   it('emits update:zoom with decreased value when zoom out clicked', async () => {
@@ -57,7 +52,7 @@ describe('ZoomControls', () => {
     await zoomOutButton.trigger('click');
 
     expect(wrapper.emitted('update:zoom')).toBeTruthy();
-    expect(wrapper.emitted('update:zoom')![0][0]).toBeLessThan(1);
+    expect(emittedEvents(wrapper, 'update:zoom')[0][0]).toBeLessThan(1);
   });
 
   it('emits fit event when fit button clicked', async () => {
@@ -125,7 +120,7 @@ describe('ZoomControls', () => {
     const zoomInButton = buttons[1];
     await zoomInButton.trigger('click');
 
-    const emitted = wrapper.emitted('update:zoom')![0][0] as number;
+    const emitted = emittedEvents(wrapper, 'update:zoom')[0][0] as number;
     expect(emitted).toBeLessThanOrEqual(4);
   });
 
@@ -141,7 +136,7 @@ describe('ZoomControls', () => {
     const zoomOutButton = buttons[0];
     await zoomOutButton.trigger('click');
 
-    const emitted = wrapper.emitted('update:zoom')![0][0] as number;
+    const emitted = emittedEvents(wrapper, 'update:zoom')[0][0] as number;
     expect(emitted).toBeGreaterThanOrEqual(0.25);
   });
 });

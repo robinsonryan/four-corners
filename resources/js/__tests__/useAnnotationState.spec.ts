@@ -174,7 +174,7 @@ describe('useAnnotationState', () => {
         bottomLeft: { x: 100, y: 400 },
       };
 
-      const { hasChanges, updateCorner, rotate } = useAnnotationState(initialCorners, 0);
+      const { hasChanges, updateCorner } = useAnnotationState(initialCorners, 0);
 
       expect(hasChanges.value).toBe(false);
 

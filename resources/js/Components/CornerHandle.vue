@@ -7,6 +7,7 @@
  */
 import { computed } from 'vue';
 import type { Point, CornerKey } from '../Types';
+import type { KonvaEventObject } from "konva/lib/Node";
 
 interface Props {
   cornerKey: CornerKey;
@@ -55,7 +56,7 @@ const handleDragStart = () => {
   emit('dragStart', props.cornerKey);
 };
 
-const handleDragMove = (e: any) => {
+const handleDragMove = (e: KonvaEventObject<DragEvent>) => {
   const node = e.target;
   emit('dragMove', props.cornerKey, {
     x: node.x(),
@@ -63,7 +64,7 @@ const handleDragMove = (e: any) => {
   });
 };
 
-const handleDragEnd = (e: any) => {
+const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
   const node = e.target;
   emit('dragEnd', props.cornerKey, {
     x: node.x(),

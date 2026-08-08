@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import RotationControls from '../Components/RotationControls.vue';
+import { emittedEvents } from "./helpers";
 
 describe('RotationControls', () => {
   it('renders with correct rotation value', () => {
@@ -44,7 +45,7 @@ describe('RotationControls', () => {
     await buttons[0].trigger('click');
 
     expect(wrapper.emitted('rotate')).toBeTruthy();
-    expect(wrapper.emitted('rotate')![0]).toEqual([-90]);
+    expect(emittedEvents(wrapper, 'rotate')[0]).toEqual([-90]);
   });
 
   it('emits rotate event with 90 when clockwise button clicked', async () => {
@@ -58,7 +59,7 @@ describe('RotationControls', () => {
     await buttons[1].trigger('click');
 
     expect(wrapper.emitted('rotate')).toBeTruthy();
-    expect(wrapper.emitted('rotate')![0]).toEqual([90]);
+    expect(emittedEvents(wrapper, 'rotate')[0]).toEqual([90]);
   });
 
   it('disables buttons when disabled prop is true', () => {

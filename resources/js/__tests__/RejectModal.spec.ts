@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import RejectModal from '../Components/RejectModal.vue';
 import type { RejectionReason } from '../Types';
+import { emittedEvents } from "./helpers";
 
 describe('RejectModal', () => {
   const mockReasons: RejectionReason[] = [
@@ -123,7 +124,7 @@ describe('RejectModal', () => {
 
     expect(wrapper.emitted('reject')).toBeTruthy();
     // First reason is selected by default
-    expect(wrapper.emitted('reject')![0]).toEqual([1, null]);
+    expect(emittedEvents(wrapper, 'reject')[0]).toEqual([1, null]);
   });
 
   it('includes notes in reject event when provided', async () => {
@@ -149,7 +150,7 @@ describe('RejectModal', () => {
     await confirmButton?.trigger('click');
 
     expect(wrapper.emitted('reject')).toBeTruthy();
-    expect(wrapper.emitted('reject')![0]).toEqual([1, 'Additional context about the issue']);
+    expect(emittedEvents(wrapper, 'reject')[0]).toEqual([1, 'Additional context about the issue']);
   });
 
   it('trims whitespace from notes', async () => {
@@ -175,7 +176,7 @@ describe('RejectModal', () => {
     await confirmButton?.trigger('click');
 
     expect(wrapper.emitted('reject')).toBeTruthy();
-    expect(wrapper.emitted('reject')![0]).toEqual([1, 'Some notes with whitespace']);
+    expect(emittedEvents(wrapper, 'reject')[0]).toEqual([1, 'Some notes with whitespace']);
   });
 
   it('returns null for empty notes', async () => {
@@ -201,7 +202,7 @@ describe('RejectModal', () => {
     await confirmButton?.trigger('click');
 
     expect(wrapper.emitted('reject')).toBeTruthy();
-    expect(wrapper.emitted('reject')![0]).toEqual([1, null]);
+    expect(emittedEvents(wrapper, 'reject')[0]).toEqual([1, null]);
   });
 
   it('disables confirm button when no reason selected', async () => {

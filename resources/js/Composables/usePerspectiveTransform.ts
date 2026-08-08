@@ -1,4 +1,5 @@
 import type { Corners, Rotation } from '../Types';
+import type { CvMat, OpenCV } from "../Types/opencv";
 
 interface UsePerspectiveTransformReturn {
   transform: (
@@ -7,7 +8,7 @@ interface UsePerspectiveTransformReturn {
     outputWidth: number,
     outputHeight: number,
     rotation: Rotation,
-    cv: any
+    cv: OpenCV
   ) => Promise<HTMLCanvasElement>;
   toBase64: (
     canvas: HTMLCanvasElement,
@@ -23,15 +24,14 @@ export function usePerspectiveTransform(): UsePerspectiveTransformReturn {
     outputWidth: number,
     outputHeight: number,
     rotation: Rotation,
-    cv: any
+    cv: OpenCV
   ): Promise<HTMLCanvasElement> => {
-    let src: any = null;
-    let dst: any = null;
-    let rotated: any = null;
-    let srcTri: any = null;
-    let dstTri: any = null;
-    let M: any = null;
-    let dsize: any = null;
+    let src: CvMat | null = null;
+    let dst: CvMat | null = null;
+    let rotated: CvMat | null = null;
+    let srcTri: CvMat | null = null;
+    let dstTri: CvMat | null = null;
+    let M: CvMat | null = null;
 
     try {
       // Read source image
@@ -58,7 +58,7 @@ export function usePerspectiveTransform(): UsePerspectiveTransformReturn {
 
       // Apply perspective transformation
       dst = new cv.Mat();
-      dsize = new cv.Size(outputWidth, outputHeight);
+      const dsize = new cv.Size(outputWidth, outputHeight);
       cv.warpPerspective(src, dst, M, dsize);
 
       // Apply rotation if needed using cv.rotate() for correct dimension handling
@@ -104,7 +104,7 @@ export function usePerspectiveTransform(): UsePerspectiveTransformReturn {
   const toBase64 = (
     canvas: HTMLCanvasElement,
     format: 'jpeg' | 'png' = 'jpeg',
-    quality: number = 0.9
+    quality = 0.9
   ): string => {
     const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
     return canvas.toDataURL(mimeType, quality);

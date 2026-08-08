@@ -72,7 +72,7 @@ const emit = defineEmits<{
 
 // OpenCV
 const { isLoaded: opencvLoaded, isLoading: opencvLoading, load: loadOpenCV } = useOpenCV(props.opencvUrl);
-const { isDetecting, detect, validateAndSuggestRotation } = useCornerDetection();
+const { isDetecting, detect } = useCornerDetection();
 const { transform, toBase64 } = usePerspectiveTransform();
 const { getOrientation } = useExifOrientation();
 
@@ -164,10 +164,22 @@ const loadImage = async () => {
 };
 
 const applyRotationSuggestion = () => {
-  if (rotationSuggestion.value !== null) {
-    rotate(rotationSuggestion.value);
-    rotationSuggestion.value = null;
+  if (rotationSuggestion.value === null) {
+    return;
   }
+
+  // The suggestion is an ABSOLUTE orientation from EXIF (0/90/180/270); rotate()
+  // takes a DELTA (90/-90/180). They were passed through directly, so a 270
+  // suggestion could never be applied — it is not a valid delta. 0 means the
+  // image is already upright and needs no call at all.
+  const delta = { 90: 90, 180: 180, 270: -90 } as const;
+  const suggestion = rotationSuggestion.value;
+
+  if (suggestion !== 0) {
+    rotate(delta[suggestion]);
+  }
+
+  rotationSuggestion.value = null;
 };
 
 const dismissRotationSuggestion = () => {
@@ -303,6 +315,11 @@ const handleReject = (reasonId: number | string, notes: string | null) => {
   showRejectModal.value = false;
 };
 
+// The `cancel` event is declared in defineEmits, but no control in this
+// template invokes this handler — so the event can never fire. Tracked in
+// QUEUE.md. Deleting the handler would leave a declared public event with no
+// emitter at all, which is worse, so it stays until the gap is designed away.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const handleCancel = () => {
   emit('cancel');
 };

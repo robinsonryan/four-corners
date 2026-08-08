@@ -1,14 +1,15 @@
 import { ref, type Ref } from 'vue';
-import type { AutoDetection, Corners, Point, Rotation, RotationSuggestion } from '../Types';
+import type { AutoDetection, Corners, Point, RotationSuggestion } from '../Types';
+import type { CvMat, CvMatVector, OpenCV } from "../Types/opencv";
 
 interface UseCornerDetectionReturn {
   isDetecting: Ref<boolean>;
   detectionResult: Ref<AutoDetection | null>;
-  detect: (imageElement: HTMLImageElement | HTMLCanvasElement, cv: any) => Promise<AutoDetection>;
+  detect: (imageElement: HTMLImageElement | HTMLCanvasElement, cv: OpenCV) => Promise<AutoDetection>;
   validateAndSuggestRotation: (corners: Corners) => RotationSuggestion;
 }
 
-function calculateAdaptiveThresholds(gray: any, cv: any): { low: number; high: number } {
+function calculateAdaptiveThresholds(gray: CvMat, cv: OpenCV): { low: number; high: number } {
   const mean = cv.mean(gray);
   const median = mean[0]; // Approximate using mean
 
@@ -103,18 +104,18 @@ export function useCornerDetection(): UseCornerDetectionReturn {
    * Single-pass detection with given parameters
    */
   const detectWithParams = (
-    blurred: any,
-    cv: any,
+    blurred: CvMat,
+    cv: OpenCV,
     width: number,
     height: number,
     imageArea: number,
     pass: DetectionPass
   ): { quad: Point[] | null; area: number } => {
-    let edges: any = null;
-    let closed: any = null;
-    let dilated: any = null;
-    let contours: any = null;
-    let hierarchy: any = null;
+    let edges: CvMat | null = null;
+    let closed: CvMat | null = null;
+    let dilated: CvMat | null = null;
+    let contours: CvMatVector | null = null;
+    let hierarchy: CvMat | null = null;
 
     try {
       // Canny edge detection
@@ -196,14 +197,14 @@ export function useCornerDetection(): UseCornerDetectionReturn {
 
   const detect = async (
     imageElement: HTMLImageElement | HTMLCanvasElement,
-    cv: any
+    cv: OpenCV
   ): Promise<AutoDetection> => {
     isDetecting.value = true;
     const startTime = performance.now();
 
-    let src: any = null;
-    let gray: any = null;
-    let blurred: any = null;
+    let src: CvMat | null = null;
+    let gray: CvMat | null = null;
+    let blurred: CvMat | null = null;
 
     try {
       // Read image
